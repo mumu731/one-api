@@ -51,6 +51,7 @@ func (channel *Channel) DeleteAbilities() error {
 	return DB.Where("channel_id = ?", channel.Id).Delete(&Ability{}).Error
 }
 
+// 666
 // UpdateAbilities updates abilities of this channel.
 // Make sure the channel is completed before calling this function.
 func (channel *Channel) UpdateAbilities() error {
