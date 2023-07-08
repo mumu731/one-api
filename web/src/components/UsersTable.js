@@ -55,10 +55,10 @@ const UsersTable = () => {
 
   useEffect(() => {
     loadUsers(0)
-      .then()
-      .catch((reason) => {
-        showError(reason);
-      });
+        .then()
+        .catch((reason) => {
+          showError(reason);
+        });
   }, []);
 
   const manageUser = (username, action, idx) => {
@@ -92,15 +92,15 @@ const UsersTable = () => {
         return <Label basic>已激活</Label>;
       case 2:
         return (
-          <Label basic color='red'>
-            已封禁
-          </Label>
+            <Label basic color='red'>
+              已封禁
+            </Label>
         );
       default:
         return (
-          <Label basic color='grey'>
-            未知状态
-          </Label>
+            <Label basic color='grey'>
+              未知状态
+            </Label>
         );
     }
   };
@@ -143,203 +143,194 @@ const UsersTable = () => {
   };
 
   return (
-    <>
-      <Form onSubmit={searchUsers}>
-        <Form.Input
-          icon='search'
-          fluid
-          iconPosition='left'
-          placeholder='搜索用户的 ID，用户名，显示名称，以及邮箱地址 ...'
-          value={searchKeyword}
-          loading={searching}
-          onChange={handleKeywordChange}
-        />
-      </Form>
+      <>
+        <Form onSubmit={searchUsers}>
+          <Form.Input
+              icon='search'
+              fluid
+              iconPosition='left'
+              placeholder='搜索用户的 ID，用户名，显示名称，以及邮箱地址 ...'
+              value={searchKeyword}
+              loading={searching}
+              onChange={handleKeywordChange}
+          />
+        </Form>
 
-      <Table basic compact size='small'>
-        <Table.Header>
-          <Table.Row>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('id');
-              }}
-            >
-              ID
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('username');
-              }}
-            >
-              用户名
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('group');
-              }}
-            >
-              分组
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('email');
-              }}
-            >
-              邮箱地址
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('quota');
-              }}
-            >
-              统计信息
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('role');
-              }}
-            >
-              用户角色
-            </Table.HeaderCell>
-            <Table.HeaderCell
-              style={{ cursor: 'pointer' }}
-              onClick={() => {
-                sortUser('status');
-              }}
-            >
-              状态
-            </Table.HeaderCell>
-            <Table.HeaderCell>操作</Table.HeaderCell>
-          </Table.Row>
-        </Table.Header>
+        <Table basic compact size='small'>
+          <Table.Header>
+            <Table.Row>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortUser('id');
+                  }}
+              >
+                ID
+              </Table.HeaderCell>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortUser('username');
+                  }}
+              >
+                用户名
+              </Table.HeaderCell>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortUser('group');
+                  }}
+              >
+                分组
+              </Table.HeaderCell>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortUser('quota');
+                  }}
+              >
+                统计信息
+              </Table.HeaderCell>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortUser('role');
+                  }}
+              >
+                用户角色
+              </Table.HeaderCell>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortUser('status');
+                  }}
+              >
+                状态
+              </Table.HeaderCell>
+              <Table.HeaderCell>操作</Table.HeaderCell>
+            </Table.Row>
+          </Table.Header>
 
-        <Table.Body>
-          {users
-            .slice(
-              (activePage - 1) * ITEMS_PER_PAGE,
-              activePage * ITEMS_PER_PAGE
-            )
-            .map((user, idx) => {
-              if (user.deleted) return <></>;
-              return (
-                <Table.Row key={user.id}>
-                  <Table.Cell>{user.id}</Table.Cell>
-                  <Table.Cell>
-                    <Popup
-                      content={user.email ? user.email : '未绑定邮箱地址'}
-                      key={user.display_name}
-                      header={user.display_name ? user.display_name : user.username}
-                      trigger={<span>{renderText(user.username, 10)}</span>}
-                      hoverable
-                    />
-                  </Table.Cell>
-                  <Table.Cell>{renderGroup(user.group)}</Table.Cell>
-                  <Table.Cell>
-                    {user.email ? <Popup hoverable content={user.email} trigger={<span>{renderText(user.email, 24)}</span>} /> : '无'}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Popup content='剩余额度' trigger={<Label>{renderQuota(user.quota)}</Label>} />
-                    <Popup content='已用额度' trigger={<Label>{renderQuota(user.used_quota)}</Label>} />
-                    <Popup content='请求次数' trigger={<Label>{renderNumber(user.request_count)}</Label>} />
-                  </Table.Cell>
-                  <Table.Cell>{renderRole(user.role)}</Table.Cell>
-                  <Table.Cell>{renderStatus(user.status)}</Table.Cell>
-                  <Table.Cell>
-                    <div>
-                      <Button
-                        size={'small'}
-                        positive
-                        onClick={() => {
-                          manageUser(user.username, 'promote', idx);
-                        }}
-                        disabled={user.role === 100}
-                      >
-                        提升
-                      </Button>
-                      <Button
-                        size={'small'}
-                        color={'yellow'}
-                        onClick={() => {
-                          manageUser(user.username, 'demote', idx);
-                        }}
-                        disabled={user.role === 100}
-                      >
-                        降级
-                      </Button>
-                      <Popup
-                        trigger={
-                          <Button size='small' negative disabled={user.role === 100}>
-                            删除
-                          </Button>
-                        }
-                        on='click'
-                        flowing
-                        hoverable
-                      >
-                        <Button
-                          negative
-                          onClick={() => {
-                            manageUser(user.username, 'delete', idx);
-                          }}
-                        >
-                          删除用户 {user.username}
-                        </Button>
-                      </Popup>
-                      <Button
-                        size={'small'}
-                        onClick={() => {
-                          manageUser(
-                            user.username,
-                            user.status === 1 ? 'disable' : 'enable',
-                            idx
-                          );
-                        }}
-                        disabled={user.role === 100}
-                      >
-                        {user.status === 1 ? '禁用' : '启用'}
-                      </Button>
-                      <Button
-                        size={'small'}
-                        as={Link}
-                        to={'/user/edit/' + user.id}
-                      >
-                        编辑
-                      </Button>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              );
-            })}
-        </Table.Body>
+          <Table.Body>
+            {users
+                .slice(
+                    (activePage - 1) * ITEMS_PER_PAGE,
+                    activePage * ITEMS_PER_PAGE
+                )
+                .map((user, idx) => {
+                  if (user.deleted) return <></>;
+                  return (
+                      <Table.Row key={user.id}>
+                        <Table.Cell>{user.id}</Table.Cell>
+                        <Table.Cell>
+                          <Popup
+                              content={user.email ? user.email : '未绑定邮箱地址'}
+                              key={user.username}
+                              trigger={<span>{renderText(user.username, 10)}</span>}
+                              hoverable
+                          />
+                        </Table.Cell>
+                        <Table.Cell>{renderGroup(user.group)}</Table.Cell>
+                        {/*<Table.Cell>*/}
+                        {/*  {user.email ? <Popup hoverable content={user.email} trigger={<span>{renderText(user.email, 24)}</span>} /> : '无'}*/}
+                        {/*</Table.Cell>*/}
+                        <Table.Cell>
+                          <Popup content='剩余额度' trigger={<Label basic>{renderQuota(user.quota)}</Label>} />
+                          <Popup content='已用额度' trigger={<Label basic>{renderQuota(user.used_quota)}</Label>} />
+                          <Popup content='请求次数' trigger={<Label basic>{renderNumber(user.request_count)}</Label>} />
+                        </Table.Cell>
+                        <Table.Cell>{renderRole(user.role)}</Table.Cell>
+                        <Table.Cell>{renderStatus(user.status)}</Table.Cell>
+                        <Table.Cell>
+                          <div>
+                            <Button
+                                size={'small'}
+                                positive
+                                onClick={() => {
+                                  manageUser(user.username, 'promote', idx);
+                                }}
+                                disabled={user.role === 100}
+                            >
+                              提升
+                            </Button>
+                            <Button
+                                size={'small'}
+                                color={'yellow'}
+                                onClick={() => {
+                                  manageUser(user.username, 'demote', idx);
+                                }}
+                                disabled={user.role === 100}
+                            >
+                              降级
+                            </Button>
+                            <Popup
+                                trigger={
+                                  <Button size='small' negative disabled={user.role === 100}>
+                                    删除
+                                  </Button>
+                                }
+                                on='click'
+                                flowing
+                                hoverable
+                            >
+                              <Button
+                                  negative
+                                  onClick={() => {
+                                    manageUser(user.username, 'delete', idx);
+                                  }}
+                              >
+                                删除用户 {user.username}
+                              </Button>
+                            </Popup>
+                            <Button
+                                size={'small'}
+                                onClick={() => {
+                                  manageUser(
+                                      user.username,
+                                      user.status === 1 ? 'disable' : 'enable',
+                                      idx
+                                  );
+                                }}
+                                disabled={user.role === 100}
+                            >
+                              {user.status === 1 ? '禁用' : '启用'}
+                            </Button>
+                            <Button
+                                size={'small'}
+                                as={Link}
+                                to={'/user/edit/' + user.id}
+                            >
+                              编辑
+                            </Button>
+                          </div>
+                        </Table.Cell>
+                      </Table.Row>
+                  );
+                })}
+          </Table.Body>
 
-        <Table.Footer>
-          <Table.Row>
-            <Table.HeaderCell colSpan='8'>
-              <Button size='small' as={Link} to='/user/add' loading={loading}>
-                添加新的用户
-              </Button>
-              <Pagination
-                floated='right'
-                activePage={activePage}
-                onPageChange={onPaginationChange}
-                size='small'
-                siblingRange={1}
-                totalPages={
-                  Math.ceil(users.length / ITEMS_PER_PAGE) +
-                  (users.length % ITEMS_PER_PAGE === 0 ? 1 : 0)
-                }
-              />
-            </Table.HeaderCell>
-          </Table.Row>
-        </Table.Footer>
-      </Table>
-    </>
+          <Table.Footer>
+            <Table.Row>
+              <Table.HeaderCell colSpan='7'>
+                <Button size='small' as={Link} to='/user/add' loading={loading}>
+                  添加新的用户
+                </Button>
+                <Pagination
+                    floated='right'
+                    activePage={activePage}
+                    onPageChange={onPaginationChange}
+                    size='small'
+                    siblingRange={1}
+                    totalPages={
+                        Math.ceil(users.length / ITEMS_PER_PAGE) +
+                        (users.length % ITEMS_PER_PAGE === 0 ? 1 : 0)
+                    }
+                />
+              </Table.HeaderCell>
+            </Table.Row>
+          </Table.Footer>
+        </Table>
+      </>
   );
 };
 

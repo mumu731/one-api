@@ -151,7 +151,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	}
 	req.Header.Set("Content-Type", c.Request.Header.Get("Content-Type"))
 	req.Header.Set("Accept", c.Request.Header.Get("Accept"))
-	req.Header.Set("Connection", c.Request.Header.Get("Connection"))
+	//req.Header.Set("Connection", c.Request.Header.Get("Connection"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -217,6 +217,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	}()
 
 	if isStream {
+
 		scanner := bufio.NewScanner(resp.Body)
 		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {
@@ -235,15 +236,20 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		})
 		dataChan := make(chan string)
 		stopChan := make(chan bool)
+
 		go func() {
+
 			for scanner.Scan() {
 				data := scanner.Text()
 				if len(data) < 6 { // must be something wrong!
 					common.SysError("invalid stream response: " + data)
 					continue
 				}
-				dataChan <- data
-				data = data[6:]
+
+				//dataChan <- data
+				//data = data[6:]
+				//
+				//fmt.Println("data6666: ", data)
 				if !strings.HasPrefix(data, "[DONE]") {
 					switch relayMode {
 					case RelayModeChatCompletions:
@@ -288,6 +294,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				return false
 			}
 		})
+
 		err = resp.Body.Close()
 		if err != nil {
 			return errorWrapper(err, "close_response_body_failed", http.StatusInternalServerError)
@@ -315,6 +322,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 			}
 			// Reset response body
 			resp.Body = io.NopCloser(bytes.NewBuffer(responseBody))
+
 		}
 		// We shouldn't set the header before we parse the response body, because the parse part may fail.
 		// And then we will have to send an error response, but in this case, the header has already been set.
