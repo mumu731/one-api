@@ -26,6 +26,9 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/oauth/wechat/bind", middleware.CriticalRateLimit(), middleware.UserAuth(), controller.WeChatBind)
 		apiRouter.GET("/oauth/email/bind", middleware.CriticalRateLimit(), middleware.UserAuth(), controller.EmailBind)
 
+		//支付回调
+		apiRouter.GET("/notify_url", controller.NotifyHandler)
+
 		userRoute := apiRouter.Group("/user")
 		{
 			userRoute.POST("/register", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.Register)
@@ -85,6 +88,15 @@ func SetApiRouter(router *gin.Engine) {
 			tokenRoute.POST("/", controller.AddToken)
 			tokenRoute.PUT("/", controller.UpdateToken)
 			tokenRoute.DELETE("/:id", controller.DeleteToken)
+		}
+		// 订单相关
+		orderRoute := apiRouter.Group("/order")
+		orderRoute.Use(middleware.UserAuth())
+		{
+			orderRoute.POST("/creat", controller.AddOrder)
+			orderRoute.POST("/all", controller.GetAllOrder)
+			orderRoute.POST("/getPayUrl", controller.GetPayUrl)
+			orderRoute.GET("/getPayAct", controller.GetPayAct)
 		}
 		redemptionRoute := apiRouter.Group("/redemption")
 		redemptionRoute.Use(middleware.AdminAuth())

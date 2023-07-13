@@ -20,6 +20,8 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	userId := c.GetInt("id")
 	consumeQuota := c.GetBool("consume_quota")
 	group := c.GetString("group")
+	//用户信息
+	user, err := model.GetUserById(userId, false)
 	var textRequest GeneralOpenAIRequest
 	if consumeQuota || channelType == common.ChannelTypeAzure || channelType == common.ChannelTypePaLM {
 		err := common.UnmarshalBodyReusable(c, &textRequest)
@@ -122,11 +124,15 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		// because the user has enough quota
 		preConsumedQuota = 0
 	}
-	if consumeQuota && preConsumedQuota > 0 {
-		err := model.PreConsumeTokenQuota(tokenId, preConsumedQuota)
-		if err != nil {
-			return errorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
-		}
+	//if consumeQuota && preConsumedQuota > 0 {
+	//	err := model.PreConsumeTokenQuota(tokenId, preConsumedQuota)
+	//	if err != nil {
+	//		return errorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
+	//	}
+	//}
+	// 余额不足
+	if user.Balance <= 0 {
+		return errorWrapper(errors.New("余额不足"), "user_balance_is_0", http.StatusForbidden)
 	}
 	var requestBody io.Reader
 	if isModelMapped {
@@ -151,7 +157,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	}
 	req.Header.Set("Content-Type", c.Request.Header.Get("Content-Type"))
 	req.Header.Set("Accept", c.Request.Header.Get("Accept"))
-	//req.Header.Set("Connection", c.Request.Header.Get("Connection"))
+	req.Header.Set("Connection", c.Request.Header.Get("Connection"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -197,6 +203,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				quota = 0
 			}
 			quotaDelta := quota - preConsumedQuota
+
 			err := model.PostConsumeTokenQuota(tokenId, quotaDelta)
 			if err != nil {
 				common.SysError("error consuming token remain quota: " + err.Error())
@@ -206,10 +213,27 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				common.SysError("error update user quota cache: " + err.Error())
 			}
 			if quota != 0 {
+				println("quota", textRequest.Model)
+
+				//计算消费金额
+				var consumptionAmount float64
+				if textRequest.Model == "gpt-3.5-turbo" {
+					consumptionAmount = 0.0000015 * float64(quota)
+				}
+				if textRequest.Model == "gpt-3.5-turbo-16k" {
+					consumptionAmount = 0.000003 * float64(quota)
+				}
+
+				//查询用户剩余金额   进行计算
+				balance := user.Balance - consumptionAmount
+				//更新用户余额
+				model.UpdateUserBalance(userId, balance)
+
 				tokenName := c.GetString("token_name")
 				logContent := fmt.Sprintf("模型倍率 %.2f，分组倍率 %.2f", modelRatio, groupRatio)
 				model.RecordConsumeLog(userId, promptTokens, completionTokens, textRequest.Model, tokenName, quota, logContent)
 				model.UpdateUserUsedQuotaAndRequestCount(userId, quota)
+
 				channelId := c.GetInt("channel_id")
 				model.UpdateChannelUsedQuota(channelId, quota)
 			}
@@ -237,6 +261,11 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		dataChan := make(chan string)
 		stopChan := make(chan bool)
 
+		//data123 := scanner.Text()
+		////dataChan123 <- data123
+		//data123 = data123[6:]
+		//fmt.Println("data6666: ",  bufio.NewScanner(resp.Body))
+
 		go func() {
 
 			for scanner.Scan() {
@@ -246,10 +275,8 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 					continue
 				}
 
-				//dataChan <- data
-				//data = data[6:]
-				//
-				//fmt.Println("data6666: ", data)
+				dataChan <- data
+				data = data[6:]
 				if !strings.HasPrefix(data, "[DONE]") {
 					switch relayMode {
 					case RelayModeChatCompletions:

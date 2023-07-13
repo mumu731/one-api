@@ -103,6 +103,7 @@ func Logout(c *gin.Context) {
 	})
 }
 
+// Register 注册
 func Register(c *gin.Context) {
 	if !common.RegisterEnabled {
 		c.JSON(http.StatusOK, gin.H{
@@ -118,6 +119,7 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+
 	var user model.User
 	err := json.NewDecoder(c.Request.Body).Decode(&user)
 	if err != nil {
@@ -127,6 +129,7 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+
 	if err := common.Validate.Struct(&user); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -134,6 +137,30 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+
+	if len(user.Username) < 4 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "用户名长度不能小于4",
+		})
+		return
+	}
+	if user.Username == "" || user.Password == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "用户名或密码不能为空",
+		})
+		return
+	}
+
+	if len(user.Password) < 6 || len(user.Password) > 20 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "密码长度必须在6-20位之间",
+		})
+		return
+	}
+
 	if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			c.JSON(http.StatusOK, gin.H{
@@ -168,6 +195,11 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+
+	// Add token
+	fmt.Println("Add token for user", cleanUser.Id)
+	AddTokenFunc(cleanUser.Id)
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -311,6 +343,11 @@ func GetAffCode(c *gin.Context) {
 	return
 }
 
+type User struct {
+	*model.User
+	DefaultToken string `json:"default_token"`
+}
+
 func GetSelf(c *gin.Context) {
 	id := c.GetInt("id")
 	user, err := model.GetUserById(id, false)
@@ -321,10 +358,14 @@ func GetSelf(c *gin.Context) {
 		})
 		return
 	}
+	userWithDefault := &User{
+		User:         user,
+		DefaultToken: model.SearchDefaultTokens(user.Id),
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    user,
+		"data":    userWithDefault,
 	})
 	return
 }

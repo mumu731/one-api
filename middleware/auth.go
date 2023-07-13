@@ -22,6 +22,7 @@ func authHelper(c *gin.Context, minRole int) {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"success": false,
 				"message": "无权进行此操作，未登录且未提供 access token",
+				"code":    401,
 			})
 			c.Abort()
 			return
@@ -36,6 +37,7 @@ func authHelper(c *gin.Context, minRole int) {
 		} else {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
+				"code":    401,
 				"message": "无权进行此操作，access token 无效",
 			})
 			c.Abort()

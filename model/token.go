@@ -19,6 +19,7 @@ type Token struct {
 	RemainQuota    int    `json:"remain_quota" gorm:"default:0"`
 	UnlimitedQuota bool   `json:"unlimited_quota" gorm:"default:false"`
 	UsedQuota      int    `json:"used_quota" gorm:"default:0"` // used quota
+	IsDefault      bool   `json:"is_default" gorm:"default:false"`
 }
 
 func GetAllUserTokens(userId int, startIdx int, num int) ([]*Token, error) {
@@ -224,4 +225,11 @@ func PostConsumeTokenQuota(tokenId int, quota int) (err error) {
 		}
 	}
 	return nil
+}
+
+// SearchDefaultTokens 查询用户默认的令牌
+func SearchDefaultTokens(userId int) (tokens string) {
+	DB.Model(&Token{}).Where("user_id = ?", userId).Where("is_default", true).Select("key").Find(&tokens)
+	println(tokens)
+	return tokens
 }

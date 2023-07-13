@@ -125,6 +125,7 @@ func AddToken(c *gin.Context) {
 		ExpiredTime:    token.ExpiredTime,
 		RemainQuota:    token.RemainQuota,
 		UnlimitedQuota: token.UnlimitedQuota,
+		IsDefault:      false,
 	}
 	err = cleanToken.Insert()
 	if err != nil {
@@ -217,5 +218,25 @@ func UpdateToken(c *gin.Context) {
 		"message": "",
 		"data":    cleanToken,
 	})
+	return
+}
+
+// AddTokenFunc 函数方法初始化创建默认token
+func AddTokenFunc(UserId int) {
+	cleanToken := model.Token{
+		UserId:         UserId,
+		Name:           "Botx",
+		Key:            common.GenerateKey(),
+		CreatedTime:    common.GetTimestamp(),
+		AccessedTime:   common.GetTimestamp(),
+		ExpiredTime:    -1,
+		RemainQuota:    -1,
+		UnlimitedQuota: true,
+		IsDefault:      true,
+	}
+	err := cleanToken.Insert()
+	if err != nil {
+		return
+	}
 	return
 }
