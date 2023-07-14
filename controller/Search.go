@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
+	"time"
 )
 
 type SearchResult struct {
@@ -17,40 +18,81 @@ type SearchResult struct {
 	Snippet string `json:"snippet"`
 }
 
-func search(query string) ([]SearchResult, error) {
-	// 构建搜狗搜索 URL
-	searchURL := fmt.Sprintf("https://www.so.com/s?q=%s", url.QueryEscape(query))
+func search(query string) (string, error) {
 
-	// 发送 HTTP GET 请求并获取响应
-	response, err := http.Get(searchURL)
+	region := "zh-cn"
+	page := 1
+
+	response, err := http.Get(fmt.Sprintf("https://duckduckgo.com/?q=%s", url.QueryEscape(query)))
 	if err != nil {
-		return nil, err
+		fmt.Println("Error:", err)
+		return "错误", err
 	}
 	defer response.Body.Close()
 
-	// 使用 goquery 解析 HTML
-	doc, err := goquery.NewDocumentFromReader(response.Body)
+	html, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		fmt.Println("Error:", err)
+		return "错误", err
 	}
 
-	// 解析搜索结果
-	results := make([]SearchResult, 0)
-	doc.Find(".result .res-title").Each(func(i int, s *goquery.Selection) {
-		title := s.Text()
-		linkElement := s.Find("a[href]")
-		href, _ := linkElement.Attr("href")
-		snippet := s.Parent().Find(".res-desc").Text()
+	regex := regexp.MustCompile(`vqd=["']([^"']+)["']`)
+	match := regex.FindStringSubmatch(string(html))
+	var vqd string
+	if len(match) > 1 {
+		vqd = strings.ReplaceAll(strings.ReplaceAll(match[1], `"`, ""), "'", "")
+	}
 
-		result := SearchResult{
-			Title:   strings.TrimSpace(title),
-			Href:    strings.TrimSpace(href),
-			Snippet: strings.TrimSpace(snippet),
+	safeSearchBase := map[string]int{"On": 1, "Moderate": -1, "Off": -2}
+	PAGINATION_STEP := 25
+
+	res, err := http.Get(fmt.Sprintf("https://links.duckduckgo.com/d.js?q=%s&l=%s&p=%d&s=%d&df=%d&o=json&vqd=%s",
+		url.QueryEscape(query), region, safeSearchBase["On"], max(PAGINATION_STEP*(page-1), 0), getTimeMillis(), vqd))
+	if err != nil {
+		fmt.Println("Error:", err)
+		return "错误", err
+	}
+	defer res.Body.Close()
+
+	var result map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&result)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return "错误", err
+	}
+
+	referenceResults := make([][]interface{}, 0)
+	if results, ok := result["results"].([]interface{}); ok {
+		for _, r := range results {
+			row := r.(map[string]interface{})
+			if n, ok := row["n"]; !ok || n == nil {
+				if body, ok := row["a"].(string); ok {
+					referenceResults = append(referenceResults, []interface{}{body, row["u"]})
+					if len(referenceResults) > 2 {
+						break
+					}
+				}
+			}
 		}
-		results = append(results, result)
-	})
+	}
 
-	return results, nil
+	resultData, err := json.Marshal(referenceResults)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return "错误", err
+	}
+	return string(resultData), nil
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func getTimeMillis() int64 {
+	return time.Now().UnixNano() / int64(time.Millisecond)
 }
 
 type SearchRequest struct {

@@ -19,9 +19,10 @@ import (
 // GetPayUrl 易支付-支付请求
 func GetPayUrl(c *gin.Context) {
 	orderNo := c.Query("orderNo")
+	returnUrl := c.Query("return_url")
 	urls := "https://www.u3b.net/mapi.php"
 	params := url.Values{}
-	for key, value := range FormPayQuery(orderNo) {
+	for key, value := range FormPayQuery(orderNo, returnUrl) {
 		params.Add(key, value)
 	}
 	resp, err := http.PostForm(urls, params)
@@ -63,14 +64,14 @@ func GetPayUrl(c *gin.Context) {
 }
 
 // FormPayQuery 易支付-支付参数
-func FormPayQuery(orderNo string) map[string]string {
+func FormPayQuery(orderNo string, returnUrl string) map[string]string {
 	// 定义参数
 	params := map[string]string{
 		"pid":          "1182",
-		"type":         "alipay",
+		"type":         "wxpay",
 		"out_trade_no": SearchOrderss(orderNo).OrderNo,
 		"notify_url":   "http://182.44.52.201:15600/api/notify_url",
-		"return_url":   "http://127.0.0.1:1002",
+		"return_url":   returnUrl,
 		"name":         "Tokens",
 		"money":        strconv.FormatFloat(SearchOrderss(orderNo).Price, 'f', -1, 64),
 		"clientip":     "192.168.1.100",

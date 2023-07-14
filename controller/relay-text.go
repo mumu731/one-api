@@ -243,6 +243,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	if isStream {
 
 		scanner := bufio.NewScanner(resp.Body)
+
 		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {
 				return 0, nil, nil
@@ -260,11 +261,6 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		})
 		dataChan := make(chan string)
 		stopChan := make(chan bool)
-
-		//data123 := scanner.Text()
-		////dataChan123 <- data123
-		//data123 = data123[6:]
-		//fmt.Println("data6666: ",  bufio.NewScanner(resp.Body))
 
 		go func() {
 
@@ -312,9 +308,11 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		c.Stream(func(w io.Writer) bool {
 			select {
 			case data := <-dataChan:
+				//fmt.Printf("%v", data)
 				if strings.HasPrefix(data, "data: [DONE]") {
 					data = data[:12]
 				}
+
 				c.Render(-1, common.CustomEvent{Data: data})
 				return true
 			case <-stopChan:
