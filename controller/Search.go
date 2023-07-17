@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
-	"strings"
 	"time"
 )
 
@@ -18,70 +16,35 @@ type SearchResult struct {
 	Snippet string `json:"snippet"`
 }
 
-func search(query string) (string, error) {
+func search(query string) (map[string]interface{}, error) {
 
-	region := "zh-cn"
-	page := 1
-
-	response, err := http.Get(fmt.Sprintf("https://duckduckgo.com/?q=%s", url.QueryEscape(query)))
+	response, err := http.Get(fmt.Sprintf("https://api.valueserp.com/search?api_key=E6F8AFB946AC47738637FE5E83F5850B&q=%s&hl=zh-cn&gl=cn", url.QueryEscape(query)))
 	if err != nil {
 		fmt.Println("Error:", err)
-		return "错误", err
 	}
 	defer response.Body.Close()
 
-	html, err := ioutil.ReadAll(response.Body)
+	body, err := ioutil.ReadAll(response.Body)
+
 	if err != nil {
 		fmt.Println("Error:", err)
-		return "错误", err
 	}
 
-	regex := regexp.MustCompile(`vqd=["']([^"']+)["']`)
-	match := regex.FindStringSubmatch(string(html))
-	var vqd string
-	if len(match) > 1 {
-		vqd = strings.ReplaceAll(strings.ReplaceAll(match[1], `"`, ""), "'", "")
-	}
-
-	safeSearchBase := map[string]int{"On": 1, "Moderate": -1, "Off": -2}
-	PAGINATION_STEP := 25
-
-	res, err := http.Get(fmt.Sprintf("https://links.duckduckgo.com/d.js?q=%s&l=%s&p=%d&s=%d&df=%d&o=json&vqd=%s",
-		url.QueryEscape(query), region, safeSearchBase["On"], max(PAGINATION_STEP*(page-1), 0), getTimeMillis(), vqd))
+	var data map[string]interface{}
+	// 解析JSON数据
+	err = json.Unmarshal(body, &data)
 	if err != nil {
 		fmt.Println("Error:", err)
-		return "错误", err
 	}
-	defer res.Body.Close()
+	// 将map转换为JSON字符串
+	//jsonStr, err := json.Marshal(data)
+	//if err != nil {
+	//	return "错误", err
+	//}
+	//
+	//return string(jsonStr), nil
 
-	var result map[string]interface{}
-	err = json.NewDecoder(res.Body).Decode(&result)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return "错误", err
-	}
-
-	referenceResults := make([][]interface{}, 0)
-	if results, ok := result["results"].([]interface{}); ok {
-		for _, r := range results {
-			row := r.(map[string]interface{})
-			if n, ok := row["n"]; !ok || n == nil {
-				if body, ok := row["a"].(string); ok {
-					referenceResults = append(referenceResults, []interface{}{body, row["u"]})
-					if len(referenceResults) > 2 {
-						break
-					}
-				}
-			}
-		}
-	}
-
-	resultData, err := json.Marshal(referenceResults)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return "错误", err
-	}
-	return string(resultData), nil
+	return data, nil
 }
 
 func max(a, b int) int {
