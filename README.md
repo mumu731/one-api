@@ -51,6 +51,8 @@ _✨ All in one 的 OpenAI 接口，整合各种 API 访问方式，开箱即用
   <a href="https://iamazing.cn/page/reward">赞赏支持</a>
 </p>
 
+> **Note**：本项目为开源项目，使用者必须在遵循 OpenAI 的[使用条款](https://openai.com/policies/terms-of-use)以及**法律法规**的情况下使用，不得用于非法用途。
+
 > **Note**：使用 Docker 拉取的最新镜像可能是 `alpha` 版本，如果追求稳定性请手动指定版本。
 
 > **Warning**：从 `v0.3` 版本升级到 `v0.4` 版本需要手动迁移数据库，请手动执行[数据库迁移脚本](./bin/migration_v0.3-v0.4.sql)。
@@ -64,6 +66,7 @@ _✨ All in one 的 OpenAI 接口，整合各种 API 访问方式，开箱即用
    + [x] [API2D](https://api2d.com/r/197971)
    + [x] [OhMyGPT](https://aigptx.top?aff=uFpUl2Kf)
    + [x] [AI Proxy](https://aiproxy.io/?i=OneAPI) （邀请码：`OneAPI`）
+   + [x] [CloseAI](https://console.closeai-asia.com/r/2412)
    + [x] 自定义渠道：例如各种未收录的第三方代理服务
 2. 支持通过**负载均衡**的方式访问多个渠道。
 3. 支持 **stream 模式**，可以通过流式传输实现打字机效果。
@@ -78,16 +81,19 @@ _✨ All in one 的 OpenAI 接口，整合各种 API 访问方式，开箱即用
 12. 支持以美元为单位显示额度。
 13. 支持发布公告，设置充值链接，设置新用户初始额度。
 14. 支持模型映射，重定向用户的请求模型。
-15. 支持丰富的**自定义**设置，
+15. 支持失败自动重试。
+16. 支持绘图接口。
+17. 支持丰富的**自定义**设置，
     1. 支持自定义系统名称，logo 以及页脚。
     2. 支持自定义首页和关于页面，可以选择使用 HTML & Markdown 代码进行自定义，或者使用一个单独的网页通过 iframe 嵌入。
-16. 支持通过系统访问令牌访问管理 API。
-17. 支持 Cloudflare Turnstile 用户校验。
-18. 支持用户管理，支持**多种用户登录注册方式**：
+18. 支持通过系统访问令牌访问管理 API。
+19. 支持 Cloudflare Turnstile 用户校验。
+20. 支持用户管理，支持**多种用户登录注册方式**：
     + 邮箱登录注册以及通过邮箱进行密码重置。
     + [GitHub 开放授权](https://github.com/settings/applications/new)。
     + 微信公众号授权（需要额外部署 [WeChat Server](https://github.com/songquanpeng/wechat-server)）。
-19. 未来其他大模型开放 API 后，将第一时间支持，并将其封装成同样的 API 访问方式。
+21. 支持 [ChatGLM](https://github.com/THUDM/ChatGLM2-6B)。
+22. 未来其他大模型开放 API 后，将第一时间支持，并将其封装成同样的 API 访问方式。
 
 ## 部署
 ### 基于 Docker 进行部署
@@ -186,7 +192,7 @@ sudo service nginx restart
 docker run --name chat-next-web -d -p 3001:3000 yidadaa/chatgpt-next-web
 ```
 
-注意修改端口号和 `BASE_URL`。
+注意修改端口号，之后在页面上设置接口地址（例如：https://openai.justsong.cn/ ）和 API Key 即可。
 
 #### ChatGPT Web
 项目主页：https://github.com/Chanzhaoyu/chatgpt-web
@@ -324,7 +330,6 @@ https://openai.justsong.cn
 [FastGPT](https://github.com/c121914yu/FastGPT): 三分钟搭建 AI 知识库
 
 ## 注意
-本项目为开源项目，请在遵循 OpenAI 的[使用条款](https://openai.com/policies/terms-of-use)以及**法律法规**的情况下使用，不得用于非法用途。
 
 本项目使用 MIT 协议进行开源，**在此基础上**，必须在页面底部保留署名以及指向本项目的链接。如果不想保留署名，必须首先获得授权。
 

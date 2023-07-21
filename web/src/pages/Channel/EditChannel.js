@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Header, Message, Segment } from 'semantic-ui-react';
+import { Button, Form, Header, Input, Message, Segment } from 'semantic-ui-react';
 import { useParams } from 'react-router-dom';
 import { API, showError, showInfo, showSuccess, verifyJSON } from '../../helpers';
 import { CHANNEL_OPTIONS } from '../../constants';
@@ -31,6 +31,7 @@ const EditChannel = () => {
   const [groupOptions, setGroupOptions] = useState([]);
   const [basicModels, setBasicModels] = useState([]);
   const [fullModels, setFullModels] = useState([]);
+  const [customModel, setCustomModel] = useState('');
   const handleInputChange = (e, { name, value }) => {
     setInputs((inputs) => ({ ...inputs, [name]: value }));
   };
@@ -43,6 +44,19 @@ const EditChannel = () => {
         data.models = [];
       } else {
         data.models = data.models.split(',');
+        setTimeout(() => {
+          let localModelOptions = [...modelOptions];
+          data.models.forEach((model) => {
+            if (!localModelOptions.find((option) => option.key === model)) {
+              localModelOptions.push({
+                key: model,
+                text: model,
+                value: model
+              });
+            }
+          });
+          setModelOptions(localModelOptions);
+        }, 1000);
       }
       if (data.group === '') {
         data.groups = [];
@@ -137,182 +151,203 @@ const EditChannel = () => {
   };
 
   return (
-      <>
-        <Segment loading={loading}>
-          <Header as='h3'>{isEdit ? '更新渠道信息' : '创建新的渠道'}</Header>
-          <Form autoComplete='new-password'>
-            <Form.Field>
-              <Form.Select
-                  label='类型'
-                  name='type'
-                  required
-                  options={CHANNEL_OPTIONS}
-                  value={inputs.type}
-                  onChange={handleInputChange}
-              />
-            </Form.Field>
-            {
-                inputs.type === 3 && (
-                    <>
-                      <Message>
-                        注意，<strong>模型部署名称必须和模型名称保持一致</strong>，因为 One API 会把请求体中的 model
-                        参数替换为你的部署名称（模型名称中的点会被剔除），<a target='_blank'
-                                                                          href='https://github.com/songquanpeng/one-api/issues/133?notification_referrer_id=NT_kwDOAmJSYrM2NjIwMzI3NDgyOjM5OTk4MDUw#issuecomment-1571602271'>图片演示</a>。
-                      </Message>
-                      <Form.Field>
-                        <Form.Input
-                            label='AZURE_OPENAI_ENDPOINT'
-                            name='base_url'
-                            placeholder={'请输入 AZURE_OPENAI_ENDPOINT，例如：https://docs-test-001.openai.azure.com'}
-                            onChange={handleInputChange}
-                            value={inputs.base_url}
-                            autoComplete='new-password'
-                        />
-                      </Form.Field>
-                      <Form.Field>
-                        <Form.Input
-                            label='默认 API 版本'
-                            name='other'
-                            placeholder={'请输入默认 API 版本，例如：2023-03-15-preview，该配置可以被实际的请求查询参数所覆盖'}
-                            onChange={handleInputChange}
-                            value={inputs.other}
-                            autoComplete='new-password'
-                        />
-                      </Form.Field>
-                    </>
-                )
-            }
-            {
-                inputs.type === 8 && (
-                    <Form.Field>
-                      <Form.Input
-                          label='Base URL'
-                          name='base_url'
-                          placeholder={'请输入自定义渠道的 Base URL，例如：https://openai.justsong.cn'}
-                          onChange={handleInputChange}
-                          value={inputs.base_url}
-                          autoComplete='new-password'
-                      />
-                    </Form.Field>
-                )
-            }
-            {
-                inputs.type !== 3 && inputs.type !== 8 && (
-                    <Form.Field>
-                      <Form.Input
-                          label='镜像'
-                          name='base_url'
-                          placeholder={'此项可选，输入镜像站地址，格式为：https://domain.com'}
-                          onChange={handleInputChange}
-                          value={inputs.base_url}
-                          autoComplete='new-password'
-                      />
-                    </Form.Field>
-                )
-            }
-            <Form.Field>
-              <Form.Input
-                  label='名称'
-                  required
-                  name='name'
-                  placeholder={'请输入名称'}
-                  onChange={handleInputChange}
-                  value={inputs.name}
-                  autoComplete='new-password'
-              />
-            </Form.Field>
-            <Form.Field>
-              <Form.Dropdown
-                  label='分组'
-                  placeholder={'请选择分组'}
-                  name='groups'
-                  required
-                  fluid
-                  multiple
-                  selection
-                  allowAdditions
-                  additionLabel={'请在系统设置页面编辑分组倍率以添加新的分组：'}
-                  onChange={handleInputChange}
-                  value={inputs.groups}
-                  autoComplete='new-password'
-                  options={groupOptions}
-              />
-            </Form.Field>
-            <Form.Field>
-              <Form.Dropdown
-                  label='模型'
-                  placeholder={'请选择该通道所支持的模型'}
-                  name='models'
-                  required
-                  fluid
-                  multiple
-                  selection
-                  onChange={handleInputChange}
-                  value={inputs.models}
-                  autoComplete='new-password'
-                  options={modelOptions}
-              />
-            </Form.Field>
-            <div style={{ lineHeight: '40px', marginBottom: '12px' }}>
-              <Button type={'button'} onClick={() => {
-                handleInputChange(null, { name: 'models', value: basicModels });
-              }}>填入基础模型</Button>
-              <Button type={'button'} onClick={() => {
-                handleInputChange(null, { name: 'models', value: fullModels });
-              }}>填入所有模型</Button>
-              <Button type={'button'} onClick={() => {
-                handleInputChange(null, { name: 'models', value: [] });
-              }}>清除所有模型</Button>
-            </div>
-            <Form.Field>
-              <Form.TextArea
-                  label='模型映射'
-                  placeholder={`此项可选，为一个 JSON 文本，键为用户请求的模型名称，值为要替换的模型名称，例如：\n${JSON.stringify(MODEL_MAPPING_EXAMPLE, null, 2)}`}
-                  name='model_mapping'
-                  onChange={handleInputChange}
-                  value={inputs.model_mapping}
-                  style={{ minHeight: 150, fontFamily: 'JetBrains Mono, Consolas' }}
-                  autoComplete='new-password'
-              />
-            </Form.Field>
-            {
-              batch ? <Form.Field>
-                <Form.TextArea
-                    label='密钥'
-                    name='key'
-                    required
-                    placeholder={'请输入密钥，一行一个'}
+    <>
+      <Segment loading={loading}>
+        <Header as='h3'>{isEdit ? '更新渠道信息' : '创建新的渠道'}</Header>
+        <Form autoComplete='new-password'>
+          <Form.Field>
+            <Form.Select
+              label='类型'
+              name='type'
+              required
+              options={CHANNEL_OPTIONS}
+              value={inputs.type}
+              onChange={handleInputChange}
+            />
+          </Form.Field>
+          {
+            inputs.type === 3 && (
+              <>
+                <Message>
+                  注意，<strong>模型部署名称必须和模型名称保持一致</strong>，因为 One API 会把请求体中的 model
+                  参数替换为你的部署名称（模型名称中的点会被剔除），<a target='_blank'
+                                                                    href='https://github.com/songquanpeng/one-api/issues/133?notification_referrer_id=NT_kwDOAmJSYrM2NjIwMzI3NDgyOjM5OTk4MDUw#issuecomment-1571602271'>图片演示</a>。
+                </Message>
+                <Form.Field>
+                  <Form.Input
+                    label='AZURE_OPENAI_ENDPOINT'
+                    name='base_url'
+                    placeholder={'请输入 AZURE_OPENAI_ENDPOINT，例如：https://docs-test-001.openai.azure.com'}
                     onChange={handleInputChange}
-                    value={inputs.key}
-                    style={{ minHeight: 150, fontFamily: 'JetBrains Mono, Consolas' }}
+                    value={inputs.base_url}
                     autoComplete='new-password'
-                />
-              </Form.Field> : <Form.Field>
+                  />
+                </Form.Field>
+                <Form.Field>
+                  <Form.Input
+                    label='默认 API 版本'
+                    name='other'
+                    placeholder={'请输入默认 API 版本，例如：2023-03-15-preview，该配置可以被实际的请求查询参数所覆盖'}
+                    onChange={handleInputChange}
+                    value={inputs.other}
+                    autoComplete='new-password'
+                  />
+                </Form.Field>
+              </>
+            )
+          }
+          {
+            inputs.type === 8 && (
+              <Form.Field>
                 <Form.Input
-                    label='密钥'
-                    name='key'
-                    required
-                    placeholder={'请输入密钥'}
-                    onChange={handleInputChange}
-                    value={inputs.key}
-                    autoComplete='new-password'
+                  label='Base URL'
+                  name='base_url'
+                  placeholder={'请输入自定义渠道的 Base URL，例如：https://openai.justsong.cn'}
+                  onChange={handleInputChange}
+                  value={inputs.base_url}
+                  autoComplete='new-password'
                 />
               </Form.Field>
-            }
-            {
-                !isEdit && (
-                    <Form.Checkbox
-                        checked={batch}
-                        label='批量创建'
-                        name='batch'
-                        onChange={() => setBatch(!batch)}
-                    />
-                )
-            }
-            <Button positive onClick={submit}>提交</Button>
-          </Form>
-        </Segment>
-      </>
+            )
+          }
+          {
+            inputs.type !== 3 && inputs.type !== 8 && (
+              <Form.Field>
+                <Form.Input
+                  label='镜像'
+                  name='base_url'
+                  placeholder={'此项可选，输入镜像站地址，格式为：https://domain.com'}
+                  onChange={handleInputChange}
+                  value={inputs.base_url}
+                  autoComplete='new-password'
+                />
+              </Form.Field>
+            )
+          }
+          <Form.Field>
+            <Form.Input
+              label='名称'
+              required
+              name='name'
+              placeholder={'请输入名称'}
+              onChange={handleInputChange}
+              value={inputs.name}
+              autoComplete='new-password'
+            />
+          </Form.Field>
+          <Form.Field>
+            <Form.Dropdown
+              label='分组'
+              placeholder={'请选择分组'}
+              name='groups'
+              required
+              fluid
+              multiple
+              selection
+              allowAdditions
+              additionLabel={'请在系统设置页面编辑分组倍率以添加新的分组：'}
+              onChange={handleInputChange}
+              value={inputs.groups}
+              autoComplete='new-password'
+              options={groupOptions}
+            />
+          </Form.Field>
+          <Form.Field>
+            <Form.Dropdown
+              label='模型'
+              placeholder={'请选择该通道所支持的模型'}
+              name='models'
+              required
+              fluid
+              multiple
+              selection
+              onChange={handleInputChange}
+              value={inputs.models}
+              autoComplete='new-password'
+              options={modelOptions}
+            />
+          </Form.Field>
+          <div style={{ lineHeight: '40px', marginBottom: '12px' }}>
+            <Button type={'button'} onClick={() => {
+              handleInputChange(null, { name: 'models', value: basicModels });
+            }}>填入基础模型</Button>
+            <Button type={'button'} onClick={() => {
+              handleInputChange(null, { name: 'models', value: fullModels });
+            }}>填入所有模型</Button>
+            <Button type={'button'} onClick={() => {
+              handleInputChange(null, { name: 'models', value: [] });
+            }}>清除所有模型</Button>
+            <Input
+              action={
+                <Button type={'button'} onClick={()=>{
+                  let localModels = [...inputs.models];
+                  localModels.push(customModel);
+                  let localModelOptions = [...modelOptions];
+                  localModelOptions.push({
+                    key: customModel,
+                    text: customModel,
+                    value: customModel,
+                  });
+                  setModelOptions(localModelOptions);
+                  handleInputChange(null, { name: 'models', value: localModels });
+                }}>填入</Button>
+              }
+              placeholder='输入自定义模型名称'
+              value={customModel}
+              onChange={(e, { value }) => {
+                setCustomModel(value);
+              }}
+            />
+          </div>
+          <Form.Field>
+            <Form.TextArea
+              label='模型映射'
+              placeholder={`此项可选，为一个 JSON 文本，键为用户请求的模型名称，值为要替换的模型名称，例如：\n${JSON.stringify(MODEL_MAPPING_EXAMPLE, null, 2)}`}
+              name='model_mapping'
+              onChange={handleInputChange}
+              value={inputs.model_mapping}
+              style={{ minHeight: 150, fontFamily: 'JetBrains Mono, Consolas' }}
+              autoComplete='new-password'
+            />
+          </Form.Field>
+          {
+            batch ? <Form.Field>
+              <Form.TextArea
+                label='密钥'
+                name='key'
+                required
+                placeholder={'请输入密钥，一行一个'}
+                onChange={handleInputChange}
+                value={inputs.key}
+                style={{ minHeight: 150, fontFamily: 'JetBrains Mono, Consolas' }}
+                autoComplete='new-password'
+              />
+            </Form.Field> : <Form.Field>
+              <Form.Input
+                label='密钥'
+                name='key'
+                required
+                placeholder={'请输入密钥'}
+                onChange={handleInputChange}
+                value={inputs.key}
+                autoComplete='new-password'
+              />
+            </Form.Field>
+          }
+          {
+            !isEdit && (
+              <Form.Checkbox
+                checked={batch}
+                label='批量创建'
+                name='batch'
+                onChange={() => setBatch(!batch)}
+              />
+            )
+          }
+          <Button type={isEdit ? "button" : "submit"} positive onClick={submit}>提交</Button>
+        </Form>
+      </Segment>
+    </>
   );
 };
 

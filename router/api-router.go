@@ -1,10 +1,11 @@
 package router
 
 import (
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
 	"one-api/controller"
 	"one-api/middleware"
+
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
 )
 
 func SetApiRouter(router *gin.Engine) {
@@ -12,9 +13,10 @@ func SetApiRouter(router *gin.Engine) {
 	apiRouter.Use(gzip.Gzip(gzip.DefaultCompression))
 	apiRouter.Use(middleware.GlobalAPIRateLimit())
 	{
-		apiRouter.GET("/status", controller.GetStatus)
-		apiRouter.GET("/order", controller.GetAllOrder)
+		apiRouter.POST("/redatxt", controller.ReadTxt)
+		//搜索
 		apiRouter.POST("/search", controller.GetSearchResult)
+		apiRouter.GET("/status", controller.GetStatus)
 		apiRouter.GET("/notice", controller.GetNotice)
 		apiRouter.GET("/about", controller.GetAbout)
 		apiRouter.GET("/home_page_content", controller.GetHomePageContent)
@@ -89,6 +91,7 @@ func SetApiRouter(router *gin.Engine) {
 			tokenRoute.PUT("/", controller.UpdateToken)
 			tokenRoute.DELETE("/:id", controller.DeleteToken)
 		}
+
 		// 订单相关
 		orderRoute := apiRouter.Group("/order")
 		orderRoute.Use(middleware.UserAuth())
@@ -98,6 +101,7 @@ func SetApiRouter(router *gin.Engine) {
 			orderRoute.POST("/getPayUrl", controller.GetPayUrl)
 			orderRoute.GET("/getPayAct", controller.GetPayAct)
 		}
+
 		redemptionRoute := apiRouter.Group("/redemption")
 		redemptionRoute.Use(middleware.AdminAuth())
 		{

@@ -68,7 +68,7 @@ func FormPayQuery(orderNo string, returnUrl string) map[string]string {
 	// 定义参数
 	params := map[string]string{
 		"pid":          "1182",
-		"type":         "wxpay",
+		"type":         "alipay",
 		"out_trade_no": SearchOrderss(orderNo).OrderNo,
 		"notify_url":   "http://182.44.52.201:15600/api/notify_url",
 		"return_url":   returnUrl,

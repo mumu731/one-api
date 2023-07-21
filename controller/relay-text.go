@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"one-api/common"
 	"one-api/model"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
@@ -31,6 +32,9 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	}
 	if relayMode == RelayModeModerations && textRequest.Model == "" {
 		textRequest.Model = "text-moderation-latest"
+	}
+	if relayMode == RelayModeEmbeddings && textRequest.Model == "" {
+		textRequest.Model = c.Param("model")
 	}
 	// request validation
 	if textRequest.Model == "" {
@@ -124,13 +128,14 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		// because the user has enough quota
 		preConsumedQuota = 0
 	}
+	// 积分校验
 	//if consumeQuota && preConsumedQuota > 0 {
 	//	err := model.PreConsumeTokenQuota(tokenId, preConsumedQuota)
 	//	if err != nil {
 	//		return errorWrapper(err, "pre_consume_token_quota_failed", http.StatusForbidden)
 	//	}
 	//}
-	// 余额不足
+	// 余额校验
 	if user.Balance <= 0 {
 		return errorWrapper(errors.New("余额不足"), "user_balance_is_0", http.StatusForbidden)
 	}
@@ -157,7 +162,7 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	}
 	req.Header.Set("Content-Type", c.Request.Header.Get("Content-Type"))
 	req.Header.Set("Accept", c.Request.Header.Get("Accept"))
-	req.Header.Set("Connection", c.Request.Header.Get("Connection"))
+	//req.Header.Set("Connection", c.Request.Header.Get("Connection"))
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -203,7 +208,6 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				quota = 0
 			}
 			quotaDelta := quota - preConsumedQuota
-
 			err := model.PostConsumeTokenQuota(tokenId, quotaDelta)
 			if err != nil {
 				common.SysError("error consuming token remain quota: " + err.Error())
@@ -213,7 +217,6 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				common.SysError("error update user quota cache: " + err.Error())
 			}
 			if quota != 0 {
-				println("quota", textRequest.Model)
 
 				//计算消费金额
 				var consumptionAmount float64
@@ -223,7 +226,6 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				if textRequest.Model == "gpt-3.5-turbo-16k" {
 					consumptionAmount = 0.000003 * float64(quota)
 				}
-
 				//查询用户剩余金额   进行计算
 				balance := user.Balance - consumptionAmount
 				//更新用户余额
@@ -233,7 +235,6 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 				logContent := fmt.Sprintf("模型倍率 %.2f，分组倍率 %.2f", modelRatio, groupRatio)
 				model.RecordConsumeLog(userId, promptTokens, completionTokens, textRequest.Model, tokenName, quota, logContent)
 				model.UpdateUserUsedQuotaAndRequestCount(userId, quota)
-
 				channelId := c.GetInt("channel_id")
 				model.UpdateChannelUsedQuota(channelId, quota)
 			}
@@ -241,16 +242,14 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	}()
 
 	if isStream {
-
 		scanner := bufio.NewScanner(resp.Body)
-
 		scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			if atEOF && len(data) == 0 {
 				return 0, nil, nil
 			}
 
-			if i := strings.Index(string(data), "\n\n"); i >= 0 {
-				return i + 2, data[0:i], nil
+			if i := strings.Index(string(data), "\n"); i >= 0 {
+				return i + 1, data[0:i], nil
 			}
 
 			if atEOF {
@@ -261,16 +260,12 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		})
 		dataChan := make(chan string)
 		stopChan := make(chan bool)
-
 		go func() {
-
 			for scanner.Scan() {
 				data := scanner.Text()
-				if len(data) < 6 { // must be something wrong!
-					common.SysError("invalid stream response: " + data)
+				if len(data) < 6 { // ignore blank line or wrong format
 					continue
 				}
-
 				dataChan <- data
 				data = data[6:]
 				if !strings.HasPrefix(data, "[DONE]") {
@@ -308,18 +303,17 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 		c.Stream(func(w io.Writer) bool {
 			select {
 			case data := <-dataChan:
-				//fmt.Printf("%v", data)
 				if strings.HasPrefix(data, "data: [DONE]") {
 					data = data[:12]
 				}
-
+				// some implementations may add \r at the end of data
+				data = strings.TrimSuffix(data, "\r")
 				c.Render(-1, common.CustomEvent{Data: data})
 				return true
 			case <-stopChan:
 				return false
 			}
 		})
-
 		err = resp.Body.Close()
 		if err != nil {
 			return errorWrapper(err, "close_response_body_failed", http.StatusInternalServerError)
@@ -347,7 +341,6 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 			}
 			// Reset response body
 			resp.Body = io.NopCloser(bytes.NewBuffer(responseBody))
-
 		}
 		// We shouldn't set the header before we parse the response body, because the parse part may fail.
 		// And then we will have to send an error response, but in this case, the header has already been set.
