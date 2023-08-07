@@ -13,9 +13,28 @@ func SetApiRouter(router *gin.Engine) {
 	apiRouter.Use(gzip.Gzip(gzip.DefaultCompression))
 	apiRouter.Use(middleware.GlobalAPIRateLimit())
 	{
+		//apiRouter.POST("/imagine", controller.Imagine)
+		//apiRouter.GET("/imagMessage", controller.ImagMessage)
+		//apiRouter.GET("/imagButton", controller.ImagButton)
+		//apiRouter.POST("/imagNotify", controller.ImagNotify)
+		//转发Claude-对话
+		apiRouter.POST("/proxyClaude2", controller.ProxyClaude2)
+		//转发Claude-对话
+		apiRouter.POST("/proxyClaude3", controller.ProxyClaude)
+
+		//上传txt
+		apiRouter.POST("/filesUploadDatasets", controller.FilesUploadDatasets)
+		//查询txt
+		apiRouter.POST("/estimateDatasets", controller.EstimateDatasets)
+		//翻译
+		apiRouter.POST("/translate", controller.TextTranslate)
+		//读取txt
 		apiRouter.POST("/redatxt", controller.ReadTxt)
 		//搜索
 		apiRouter.POST("/search", controller.GetSearchResult)
+		//支付回调
+		apiRouter.GET("/notify_url", controller.NotifyHandler)
+
 		apiRouter.GET("/status", controller.GetStatus)
 		apiRouter.GET("/notice", controller.GetNotice)
 		apiRouter.GET("/about", controller.GetAbout)
@@ -27,9 +46,6 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/oauth/wechat", middleware.CriticalRateLimit(), controller.WeChatAuth)
 		apiRouter.GET("/oauth/wechat/bind", middleware.CriticalRateLimit(), middleware.UserAuth(), controller.WeChatBind)
 		apiRouter.GET("/oauth/email/bind", middleware.CriticalRateLimit(), middleware.UserAuth(), controller.EmailBind)
-
-		//支付回调
-		apiRouter.GET("/notify_url", controller.NotifyHandler)
 
 		userRoute := apiRouter.Group("/user")
 		{
@@ -101,6 +117,25 @@ func SetApiRouter(router *gin.Engine) {
 			orderRoute.POST("/getPayUrl", controller.GetPayUrl)
 			orderRoute.GET("/getPayAct", controller.GetPayAct)
 		}
+
+		// 数据集知识库相关
+		datasetsRoute := apiRouter.Group("/collections")
+		datasetsRoute.Use(middleware.UserAuth())
+		{
+			datasetsRoute.GET("/all", controller.GetAllDatasets)
+			datasetsRoute.POST("/creat", controller.CreateCollection)
+			datasetsRoute.POST("/insert", controller.InsertPoints)
+			datasetsRoute.POST("/search", controller.SearchPoints)
+			datasetsRoute.POST("/delete", controller.DeleteCollection)
+		}
+
+		//Mj绘图相关
+		mdjourneyRoute := apiRouter.Group("/mdjourney")
+		mdjourneyRoute.Use(middleware.UserAuth())
+		{
+			mdjourneyRoute.GET("/pictures", controller.GetAllImage)
+		}
+		apiRouter.POST("/imagNotify", controller.ImagNotify) //绘图回调
 
 		redemptionRoute := apiRouter.Group("/redemption")
 		redemptionRoute.Use(middleware.AdminAuth())

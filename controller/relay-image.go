@@ -118,8 +118,7 @@ func relayImageHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode 
 	req.Header.Set("Content-Type", c.Request.Header.Get("Content-Type"))
 	req.Header.Set("Accept", c.Request.Header.Get("Accept"))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return errorWrapper(err, "do_request_failed", http.StatusInternalServerError)
 	}
@@ -177,6 +176,7 @@ func relayImageHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode 
 		c.Writer.Header().Set(k, v[0])
 	}
 	c.Writer.WriteHeader(resp.StatusCode)
+
 	//-------------------------------------------------------------------//
 	// 读取resp.Body的内容 转base64
 	responseBody, err := io.ReadAll(resp.Body)

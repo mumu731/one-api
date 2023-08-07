@@ -18,8 +18,8 @@ type Token struct {
 	ExpiredTime    int64  `json:"expired_time" gorm:"bigint;default:-1"` // -1 means never expired
 	RemainQuota    int    `json:"remain_quota" gorm:"default:0"`
 	UnlimitedQuota bool   `json:"unlimited_quota" gorm:"default:false"`
-	UsedQuota      int    `json:"used_quota" gorm:"default:0"` // used quota
-	IsDefault      bool   `json:"is_default" gorm:"default:false"`
+	UsedQuota      int    `json:"used_quota" gorm:"default:0"`     // used quota
+	IsDefault      bool   `json:"is_default" gorm:"default:false"` //是否为默认令牌
 }
 
 func GetAllUserTokens(userId int, startIdx int, num int) ([]*Token, error) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strings"
 )
 
 func ReadTxt(c *gin.Context) {
@@ -45,24 +44,9 @@ func ReadTxt(c *gin.Context) {
 		return
 	}
 
-	// 将文本行连接起来，并移除空格和换行符
-	compressedText := strings.Join(lines, "")
-	compressedText = strings.ReplaceAll(compressedText, " ", "")
-	compressedText = strings.ReplaceAll(compressedText, "\n", "")
-
-	// 分割文本
-	var splitText []string
-	for i := 0; i < len(compressedText); i += 200 {
-		end := i + 200
-		if end > len(compressedText) {
-			end = len(compressedText)
-		}
-		splitText = append(splitText, compressedText[i:end])
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    splitText,
+		"data":    lines,
 	})
 }

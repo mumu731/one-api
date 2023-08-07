@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"one-api/common"
 	"one-api/model"
 	"sort"
 	"strconv"
@@ -212,11 +213,17 @@ func UpdateBalance(orderNo string) {
 		return
 	}
 
+	msg, err := model.Recharge(order.Price*common.QuotaPerUnit, order.UserId)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(msg)
+
 	//查询用户剩余金额
-	user, err := model.GetUserById(order.UserId, false)
-
-	balance := user.Balance + order.Price
-
-	model.UpdateUserBalance(order.UserId, balance)
-
+	//user, err := model.GetUserById(order.UserId, false)
+	//
+	//balance := user.Balance + order.Price*200000
+	//
+	//model.UpdateUserBalance(order.UserId, balance)
 }

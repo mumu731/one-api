@@ -3,12 +3,13 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"one-api/common"
 	"one-api/model"
 	"strconv"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 )
 
 type LoginRequest struct {
@@ -103,7 +104,6 @@ func Logout(c *gin.Context) {
 	})
 }
 
-// Register 注册
 func Register(c *gin.Context) {
 	if !common.RegisterEnabled {
 		c.JSON(http.StatusOK, gin.H{
@@ -119,7 +119,6 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-
 	var user model.User
 	err := json.NewDecoder(c.Request.Body).Decode(&user)
 	if err != nil {
@@ -129,7 +128,6 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-
 	if err := common.Validate.Struct(&user); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -137,7 +135,22 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
-
+	if common.EmailVerificationEnabled {
+		if user.Email == "" || user.VerificationCode == "" {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "管理员开启了邮箱验证，请输入邮箱地址和验证码",
+			})
+			return
+		}
+		if !common.VerifyCodeWithKey(user.Email, user.VerificationCode, common.EmailVerificationPurpose) {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "验证码错误或已过期",
+			})
+			return
+		}
+	}
 	if len(user.Username) < 4 {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -159,23 +172,6 @@ func Register(c *gin.Context) {
 			"message": "密码长度必须在6-20位之间",
 		})
 		return
-	}
-
-	if common.EmailVerificationEnabled {
-		if user.Email == "" || user.VerificationCode == "" {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "管理员开启了邮箱验证，请输入邮箱地址和验证码",
-			})
-			return
-		}
-		if !common.VerifyCodeWithKey(user.Email, user.VerificationCode, common.EmailVerificationPurpose) {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "验证码错误或已过期",
-			})
-			return
-		}
 	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
@@ -518,6 +514,16 @@ func DeleteUser(c *gin.Context) {
 
 func DeleteSelf(c *gin.Context) {
 	id := c.GetInt("id")
+	user, _ := model.GetUserById(id, false)
+
+	if user.Role == common.RoleRootUser {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "不能删除超级管理员账户",
+		})
+		return
+	}
+
 	err := model.DeleteUserById(id)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{

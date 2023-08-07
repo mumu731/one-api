@@ -84,9 +84,14 @@ func Distribute() func(c *gin.Context) {
 					modelRequest.Model = "dall-e"
 				}
 			}
+			if strings.HasPrefix(c.Request.URL.Path, "/v1/imagine") {
+				if modelRequest.Model == "" {
+					modelRequest.Model = "Mdjourney"
+				}
+			}
 			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, modelRequest.Model)
 			if err != nil {
-				message := "无可用渠道"
+				message := fmt.Sprintf("当前分组 %s 下对于模型 %s 无可用渠道", userGroup, modelRequest.Model)
 				if channel != nil {
 					common.SysError(fmt.Sprintf("渠道不存在：%d", channel.Id))
 					message = "数据库一致性已被破坏，请联系管理员"

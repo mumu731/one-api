@@ -12,7 +12,7 @@ func SetRelayRouter(router *gin.Engine) {
 	modelsRouter := router.Group("/v1/models")
 	modelsRouter.Use(middleware.TokenAuth())
 	{
-		modelsRouter.GET("/", controller.ListModels)
+		modelsRouter.GET("", controller.ListModels)
 		modelsRouter.GET("/:model", controller.RetrieveModel)
 	}
 	relayV1Router := router.Group("/v1")
@@ -40,5 +40,11 @@ func SetRelayRouter(router *gin.Engine) {
 		relayV1Router.GET("/fine-tunes/:id/events", controller.RelayNotImplemented)
 		relayV1Router.DELETE("/models/:model", controller.RelayNotImplemented)
 		relayV1Router.POST("/moderations", controller.Relay)
+
+		//mj绘画
+		relayV1Router.POST("/imagine", controller.Imagine)
+		relayV1Router.GET("/imagMessage", controller.ImagMessage)
+		relayV1Router.GET("/imagButton", controller.ImagButton)
+
 	}
 }

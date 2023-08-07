@@ -81,8 +81,36 @@ type OpenAIErrorWithStatusCode struct {
 }
 
 type TextResponse struct {
-	Usage `json:"usage"`
-	Error OpenAIError `json:"error"`
+	Choices []OpenAITextResponseChoice `json:"choices"`
+	Usage   `json:"usage"`
+	Error   OpenAIError `json:"error"`
+}
+
+type OpenAITextResponseChoice struct {
+	Index        int `json:"index"`
+	Message      `json:"message"`
+	FinishReason string `json:"finish_reason"`
+}
+
+type OpenAITextResponse struct {
+	Id      string                     `json:"id"`
+	Object  string                     `json:"object"`
+	Created int64                      `json:"created"`
+	Choices []OpenAITextResponseChoice `json:"choices"`
+	Usage   `json:"usage"`
+}
+
+type OpenAIEmbeddingResponseItem struct {
+	Object    string    `json:"object"`
+	Index     int       `json:"index"`
+	Embedding []float64 `json:"embedding"`
+}
+
+type OpenAIEmbeddingResponse struct {
+	Object string                        `json:"object"`
+	Data   []OpenAIEmbeddingResponseItem `json:"data"`
+	Model  string                        `json:"model"`
+	Usage  `json:"usage"`
 }
 
 type ImageResponse struct {
@@ -92,13 +120,19 @@ type ImageResponse struct {
 	}
 }
 
+type ChatCompletionsStreamResponseChoice struct {
+	Delta struct {
+		Content string `json:"content"`
+	} `json:"delta"`
+	FinishReason string `json:"finish_reason,omitempty"`
+}
+
 type ChatCompletionsStreamResponse struct {
-	Choices []struct {
-		Delta struct {
-			Content string `json:"content"`
-		} `json:"delta"`
-		FinishReason string `json:"finish_reason"`
-	} `json:"choices"`
+	Id      string                                `json:"id"`
+	Object  string                                `json:"object"`
+	Created int64                                 `json:"created"`
+	Model   string                                `json:"model"`
+	Choices []ChatCompletionsStreamResponseChoice `json:"choices"`
 }
 
 type CompletionsStreamResponse struct {
@@ -151,7 +185,7 @@ func Relay(c *gin.Context) {
 		channelId := c.GetInt("channel_id")
 		common.SysError(fmt.Sprintf("relay error (channel #%d): %s", channelId, err.Message))
 		// https://platform.openai.com/docs/guides/error-codes/api-errors
-		if common.AutomaticDisableChannelEnabled && (err.Type == "insufficient_quota" || err.Code == "invalid_api_key" || err.Code == "account_deactivated") {
+		if shouldDisableChannel(&err.OpenAIError) {
 			channelId := c.GetInt("channel_id")
 			channelName := c.GetString("channel_name")
 			disableChannel(channelId, channelName, err.Message)

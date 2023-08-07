@@ -36,6 +36,20 @@ func GetAllOrder(c *gin.Context) {
 func AddOrder(c *gin.Context) {
 	id := c.GetInt("id")
 	order := model.Order{}
+	if order.Price <= 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "订单金额不能为0或负数",
+		})
+		return
+	}
+	if order.Price != float64(int(order.Price)) {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "订单金额需为正整数",
+		})
+		return
+	}
 	err := c.ShouldBindJSON(&order)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{

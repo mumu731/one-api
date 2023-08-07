@@ -90,6 +90,18 @@ func InitDB() (err error) {
 		if err != nil {
 			return err
 		}
+		err = db.AutoMigrate(&MDatasets{})
+		if err != nil {
+			return err
+		}
+		err = db.AutoMigrate(&Order{})
+		if err != nil {
+			return err
+		}
+		err = db.AutoMigrate(&Midjourney{})
+		if err != nil {
+			return err
+		}
 		common.SysLog("database migrated")
 		err = createRootAccountIfNeed()
 		return err

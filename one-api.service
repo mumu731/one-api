@@ -8,9 +8,9 @@ Description=One API Service
 After=network.target
 
 [Service]
-User=ubuntu  # 注意修改用户名
-WorkingDirectory=/path/to/one-api  # 注意修改路径
-ExecStart=/path/to/one-api/one-api --port 3000 --log-dir /path/to/one-api/logs  # 注意修改路径和端口号
+User=root
+WorkingDirectory=/www/wwwroot/api.f91.dev
+ExecStart=/www/wwwroot/api.f91.dev/one-api --port 3000
 Restart=always
 RestartSec=5
 
