@@ -23,7 +23,7 @@ func SetWebRouter(router *gin.Engine, buildFS embed.FS, indexPage []byte) {
 			return
 		}
 		c.Header("Cache-Control", "no-cache")
-		//c.Data(http.StatusOK, "text/html; charset=utf-8", indexPage)
-		c.HTML(http.StatusNotFound, "404.html", gin.H{})
+		c.Data(http.StatusOK, "text/html; charset=utf-8", indexPage)
+		//c.HTML(http.StatusNotFound, "404.html", gin.H{})
 	})
 }

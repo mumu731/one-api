@@ -56,6 +56,9 @@ func InitDB() (err error) {
 	db, err = gorm.Open(mysql.Open("dev_openai:3ZSpSnMYC38CZw24@tcp(45.154.13.71:3306)/dev_openai"), &gorm.Config{
 		PrepareStmt: true, // precompile SQL
 	})
+	//db, err = gorm.Open(mysql.Open("root:ul25oU1db964@tcp(zeabur-gcp-asia-east1-1.clusters.zeabur.com:30011)/dev_openai"), &gorm.Config{
+	//	PrepareStmt: true, // precompile SQL
+	//})
 	common.SysLog("database connected")
 	if err == nil {
 		DB = db

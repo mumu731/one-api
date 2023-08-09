@@ -17,6 +17,8 @@ func SetApiRouter(router *gin.Engine) {
 		//apiRouter.GET("/imagMessage", controller.ImagMessage)
 		//apiRouter.GET("/imagButton", controller.ImagButton)
 		//apiRouter.POST("/imagNotify", controller.ImagNotify)
+		//jwt
+		apiRouter.POST("/jwt", controller.GetJwt)
 		//转发Claude-对话
 		apiRouter.POST("/proxyClaude2", controller.ProxyClaude2)
 		//转发Claude-对话
