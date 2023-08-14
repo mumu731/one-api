@@ -7,14 +7,25 @@ import (
 	"one-api/common"
 	"one-api/model"
 	"strconv"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Id          int    `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	Role        int    `json:"role"`
+	Status      int    `json:"status"`
+	Token       string `json:"token"`
 }
 
 func Login(c *gin.Context) {
@@ -60,31 +71,35 @@ func Login(c *gin.Context) {
 
 // setup session & cookies and then return user info
 func setupLogin(user *model.User, c *gin.Context) {
-	session := sessions.Default(c)
-	session.Set("id", user.Id)
-	session.Set("username", user.Username)
-	session.Set("role", user.Role)
-	session.Set("status", user.Status)
-	err := session.Save()
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "无法保存会话信息，请重试",
-			"success": false,
-		})
-		return
-	}
-	cleanUser := model.User{
-		Id:          user.Id,
-		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		Role:        user.Role,
-		Status:      user.Status,
+	token := CreatToken(user.Username, user.Id, user.Role)
+	cleanUser := LoginResponse{
+		Id:       user.Id,
+		Username: user.Username,
+		Role:     user.Role,
+		Status:   user.Status,
+		Token:    token,
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "",
 		"success": true,
 		"data":    cleanUser,
 	})
+}
+
+func CreatToken(username string, id int, role int) string {
+	// 颁发一个有限期一小时的证书
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"id":       id,
+		"role":     role,
+		"exp":      time.Now().Add(time.Hour * time.Duration(1)).Unix(),
+		"iat":      time.Now().Unix(),
+	})
+	tokenString, err := token.SignedString(common.JwtSecret)
+	if err != nil {
+		return "token_generation_failed"
+	}
+	return tokenString
 }
 
 func Logout(c *gin.Context) {

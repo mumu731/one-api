@@ -49,6 +49,7 @@ const LoginForm = () => {
     if (success) {
       userDispatch({ type: 'login', payload: data });
       localStorage.setItem('user', JSON.stringify(data));
+      localStorage.setItem('token', data.token);
       navigate('/');
       showSuccess('登录成功！');
       setShowWeChatLoginModal(false);
@@ -73,6 +74,7 @@ const LoginForm = () => {
       if (success) {
         userDispatch({ type: 'login', payload: data });
         localStorage.setItem('user', JSON.stringify(data));
+        localStorage.setItem('token', data.token);
         navigate('/');
         showSuccess('登录成功！');
       } else {

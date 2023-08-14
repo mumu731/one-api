@@ -1,6 +1,7 @@
 package router
 
 import (
+	"one-api/common"
 	"one-api/controller"
 	"one-api/middleware"
 
@@ -17,8 +18,7 @@ func SetApiRouter(router *gin.Engine) {
 		//apiRouter.GET("/imagMessage", controller.ImagMessage)
 		//apiRouter.GET("/imagButton", controller.ImagButton)
 		//apiRouter.POST("/imagNotify", controller.ImagNotify)
-		//jwt
-		apiRouter.POST("/jwt", controller.GetJwt)
+
 		//转发Claude-对话
 		apiRouter.POST("/proxyClaude2", controller.ProxyClaude2)
 		//转发Claude-对话
@@ -46,8 +46,8 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), controller.ResetPassword)
 		apiRouter.GET("/oauth/github", middleware.CriticalRateLimit(), controller.GitHubOAuth)
 		apiRouter.GET("/oauth/wechat", middleware.CriticalRateLimit(), controller.WeChatAuth)
-		apiRouter.GET("/oauth/wechat/bind", middleware.CriticalRateLimit(), middleware.UserAuth(), controller.WeChatBind)
-		apiRouter.GET("/oauth/email/bind", middleware.CriticalRateLimit(), middleware.UserAuth(), controller.EmailBind)
+		apiRouter.GET("/oauth/wechat/bind", middleware.CriticalRateLimit(), middleware.JWTAuthMiddleware(common.RoleCommonUser), controller.WeChatBind)
+		apiRouter.GET("/oauth/email/bind", middleware.CriticalRateLimit(), middleware.JWTAuthMiddleware(common.RoleCommonUser), controller.EmailBind)
 
 		userRoute := apiRouter.Group("/user")
 		{
@@ -56,7 +56,7 @@ func SetApiRouter(router *gin.Engine) {
 			userRoute.GET("/logout", controller.Logout)
 
 			selfRoute := userRoute.Group("/")
-			selfRoute.Use(middleware.UserAuth())
+			selfRoute.Use(middleware.JWTAuthMiddleware(common.RoleCommonUser))
 			{
 				selfRoute.GET("/self", controller.GetSelf)
 				selfRoute.PUT("/self", controller.UpdateSelf)
@@ -67,7 +67,7 @@ func SetApiRouter(router *gin.Engine) {
 			}
 
 			adminRoute := userRoute.Group("/")
-			adminRoute.Use(middleware.AdminAuth())
+			adminRoute.Use(middleware.JWTAuthMiddleware(common.RoleAdminUser))
 			{
 				adminRoute.GET("/", controller.GetAllUsers)
 				adminRoute.GET("/search", controller.SearchUsers)
@@ -79,13 +79,13 @@ func SetApiRouter(router *gin.Engine) {
 			}
 		}
 		optionRoute := apiRouter.Group("/option")
-		optionRoute.Use(middleware.RootAuth())
+		optionRoute.Use(middleware.JWTAuthMiddleware(common.RoleRootUser))
 		{
 			optionRoute.GET("/", controller.GetOptions)
 			optionRoute.PUT("/", controller.UpdateOption)
 		}
 		channelRoute := apiRouter.Group("/channel")
-		channelRoute.Use(middleware.AdminAuth())
+		channelRoute.Use(middleware.JWTAuthMiddleware(common.RoleAdminUser))
 		{
 			channelRoute.GET("/", controller.GetAllChannels)
 			channelRoute.GET("/search", controller.SearchChannels)
@@ -100,7 +100,7 @@ func SetApiRouter(router *gin.Engine) {
 			channelRoute.DELETE("/:id", controller.DeleteChannel)
 		}
 		tokenRoute := apiRouter.Group("/token")
-		tokenRoute.Use(middleware.UserAuth())
+		tokenRoute.Use(middleware.JWTAuthMiddleware(common.RoleCommonUser))
 		{
 			tokenRoute.GET("/", controller.GetAllTokens)
 			tokenRoute.GET("/search", controller.SearchTokens)
@@ -112,7 +112,7 @@ func SetApiRouter(router *gin.Engine) {
 
 		// 订单相关
 		orderRoute := apiRouter.Group("/order")
-		orderRoute.Use(middleware.UserAuth())
+		orderRoute.Use(middleware.JWTAuthMiddleware(common.RoleCommonUser))
 		{
 			orderRoute.POST("/creat", controller.AddOrder)
 			orderRoute.POST("/all", controller.GetAllOrder)
@@ -122,7 +122,7 @@ func SetApiRouter(router *gin.Engine) {
 
 		// 数据集知识库相关
 		datasetsRoute := apiRouter.Group("/collections")
-		datasetsRoute.Use(middleware.UserAuth())
+		datasetsRoute.Use(middleware.JWTAuthMiddleware(common.RoleCommonUser))
 		{
 			datasetsRoute.GET("/all", controller.GetAllDatasets)
 			datasetsRoute.POST("/creat", controller.CreateCollection)
@@ -133,14 +133,14 @@ func SetApiRouter(router *gin.Engine) {
 
 		//Mj绘图相关
 		mdjourneyRoute := apiRouter.Group("/mdjourney")
-		mdjourneyRoute.Use(middleware.UserAuth())
+		mdjourneyRoute.Use(middleware.JWTAuthMiddleware(common.RoleCommonUser))
 		{
 			mdjourneyRoute.GET("/pictures", controller.GetAllImage)
 		}
 		apiRouter.POST("/imagNotify", controller.ImagNotify) //绘图回调
 
 		redemptionRoute := apiRouter.Group("/redemption")
-		redemptionRoute.Use(middleware.AdminAuth())
+		redemptionRoute.Use(middleware.JWTAuthMiddleware(common.RoleAdminUser))
 		{
 			redemptionRoute.GET("/", controller.GetAllRedemptions)
 			redemptionRoute.GET("/search", controller.SearchRedemptions)
@@ -150,14 +150,14 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
 		}
 		logRoute := apiRouter.Group("/log")
-		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
-		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)
-		logRoute.GET("/self/stat", middleware.UserAuth(), controller.GetLogsSelfStat)
-		logRoute.GET("/search", middleware.AdminAuth(), controller.SearchAllLogs)
-		logRoute.GET("/self", middleware.UserAuth(), controller.GetUserLogs)
-		logRoute.GET("/self/search", middleware.UserAuth(), controller.SearchUserLogs)
+		logRoute.GET("/", middleware.JWTAuthMiddleware(common.RoleAdminUser), controller.GetAllLogs)
+		logRoute.GET("/stat", middleware.JWTAuthMiddleware(common.RoleAdminUser), controller.GetLogsStat)
+		logRoute.GET("/self/stat", middleware.JWTAuthMiddleware(common.RoleAdminUser), controller.GetLogsSelfStat)
+		logRoute.GET("/search", middleware.JWTAuthMiddleware(common.RoleAdminUser), controller.SearchAllLogs)
+		logRoute.GET("/self", middleware.JWTAuthMiddleware(common.RoleCommonUser), controller.GetUserLogs)
+		logRoute.GET("/self/search", middleware.JWTAuthMiddleware(common.RoleCommonUser), controller.SearchUserLogs)
 		groupRoute := apiRouter.Group("/group")
-		groupRoute.Use(middleware.AdminAuth())
+		groupRoute.Use(middleware.JWTAuthMiddleware(common.RoleAdminUser))
 		{
 			groupRoute.GET("/", controller.GetGroups)
 		}
